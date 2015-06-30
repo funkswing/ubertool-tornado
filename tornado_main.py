@@ -24,7 +24,7 @@ class SamDailyHandler(RequestHandler):
     def get(self, jid):
         print jid
         db = self.settings['db']
-        document = db.sam.find({ "jid": jid })
+        document = yield db.sam.find_one({ "jid": jid })
         self.set_header("Content-Type", "application/json")
         self.write(json.dumps((document),default=json_util.default))
 
@@ -33,7 +33,7 @@ class SamDailyHandler(RequestHandler):
     def post(self):
         db = self.settings['db']
         document = json.loads(self.request.body)
-        db.sam.insert(document)
+        yield db.sam.insert(document)
         self.set_header("Content-Type", "application/json")
         self.set_status(201)
 
