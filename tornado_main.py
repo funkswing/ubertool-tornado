@@ -12,16 +12,36 @@ class TestHandler(RequestHandler):
     @gen.coroutine
     def get(self):
         db = self.settings['db']
-        document = yield db.sam.find_one({"run_type": "single"})
+        document = yield db.sam.find_one({ "run_type": "single" })
         self.set_header("Content-Type", "application/json")
         self.write(json.dumps((document),default=json_util.default))
         print document
 
 
+class SamDailyHandler(RequestHandler):
+    @asynchronous
+    @gen.coroutine
+    def get(self, jid):
+        print jid
+        db = self.settings['db']
+        document = db.sam.find({ "jid": jid })
+        self.set_header("Content-Type", "application/json")
+        self.write(json.dumps((document),default=json_util.default))
+
+    @asynchronous
+    @gen.coroutine
+    def post(self):
+        db = self.settings['db']
+        document = json.loads(self.request.body)
+        db.sam.insert(document)
+        self.set_header("Content-Type", "application/json")
+        self.set_status(201)
+
 def make_app():
     db = motor.MotorClient().ubertool   # Create single DB instance, and pass that to the Application
     return Application([
         url(r"/", TestHandler),
+        (r'/sam/daily/(.*)', SamDailyHandler)
         ], db=db)
 
 
