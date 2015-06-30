@@ -12,7 +12,7 @@ class TestHandler(RequestHandler):
     @gen.coroutine
     def get(self):
         db = self.settings['db']
-        document = yield db.sam.find_one([('run_type', "single")])
+        document = yield db.sam.find_one({"run_type": "single"})
         self.set_header("Content-Type", "application/json")
         self.write(json.dumps((document),default=json_util.default))
         print document
