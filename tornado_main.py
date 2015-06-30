@@ -1,6 +1,7 @@
 __author__ = 'jflaisha'
 
-import motor
+import motor, json
+from bson import json_util
 from tornado import gen
 from tornado.ioloop import IOLoop
 from tornado.web import RequestHandler, Application, url, asynchronous
@@ -12,7 +13,8 @@ class TestHandler(RequestHandler):
     def get(self):
         db = self.settings['db']
         document = yield db.sam.find_one([('run_type', "single")])
-        self.write(document)
+        self.set_header("Content-Type", "application/json")
+        self.write(json.dumps((document),default=json_util.default))
         print document
 
 
@@ -20,7 +22,7 @@ def make_app():
     db = motor.MotorClient().ubertool   # Create single DB instance, and pass that to the Application
     return Application([
         url(r"/", TestHandler),
-        ], db)
+        ], db=db)
 
 
 def main():
