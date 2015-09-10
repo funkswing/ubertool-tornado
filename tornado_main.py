@@ -1,6 +1,6 @@
 __author__ = 'jflaisha'
 
-import motor, json
+import motor, json, cPickle
 from bson import json_util
 from tornado import gen
 from tornado.ioloop import IOLoop
@@ -19,6 +19,9 @@ class TestHandler(RequestHandler):
 
 
 class SamDailyHandler(RequestHandler):
+    """
+    /sam/daily/<jid>
+    """
     @asynchronous
     @gen.coroutine
     def get(self, jid):
@@ -30,9 +33,15 @@ class SamDailyHandler(RequestHandler):
 
     @asynchronous
     @gen.coroutine
-    def post(self):
+    def post(self, jid):
         db = self.settings['db']
-        document = json.loads(self.request.body)
+        try:
+            print 'JSON'
+            document = json.loads(self.request.body)
+        except ValueError:
+            print 'Pickle'
+            document = cPickle.loads(self.request.body)
+
         yield db.sam.insert(document)
         self.set_header("Content-Type", "application/json")
         self.set_status(201)
@@ -51,8 +60,8 @@ def main():
     # server = tornado.httpserver.HTTPServer(app)
     # server.bind(8888)
     # server.start(0)  # forks one process per cpu (e.g. one tornado Python process per CPU)
-    # IOLoop.current().start()
-    IOLoop.instance().start()
+    IOLoop.current().start()
+    # IOLoop.instance().start()
 
 
 if __name__ == '__main__':
