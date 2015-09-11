@@ -43,9 +43,8 @@ class SamDailyHandler(RequestHandler):
             document = json.loads(self.request.body)
             print 'JSON'
         except ValueError:
-            pick_dict = sam.unpack(self.request.body)
-            if pick_dict is not None:
-                document = pick_dict
+            document = sam.unpack(self.request.body)
+            if document is not None:
                 # document['model_object_dict']['output'] = 'numpy placeholder'  # Dummy NumPy data
                 document['model_object_dict']['output'] = sam.pack_binary(document['model_object_dict']['output'])
 
