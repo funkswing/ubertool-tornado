@@ -5,7 +5,10 @@ from bson import json_util
 from tornado import gen
 from tornado.ioloop import IOLoop
 from tornado.web import RequestHandler, Application, url, asynchronous
+from bson.binary import Binary
 
+# Import model dependencies
+from sam import post_receiver as sam_handler
 
 class TestHandler(RequestHandler):
     @asynchronous
@@ -35,12 +38,15 @@ class SamDailyHandler(RequestHandler):
     @gen.coroutine
     def post(self, jid):
         db = self.settings['db']
+        sam = sam_handler.SamPostReceiver()
         try:
-            print 'JSON'
             document = json.loads(self.request.body)
+            print 'JSON'
         except ValueError:
+            pick_dict = sam.unpack(self.request.body)
             print 'Pickle'
-            document = cPickle.loads(self.request.body)
+            pick_dict['']
+            Binary(cPickle.dumps(pickle, protocol=2))
 
         yield db.sam.insert(document)
         self.set_header("Content-Type", "application/json")
