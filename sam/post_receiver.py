@@ -13,5 +13,7 @@ class SamPostReceiver(object):
               print "Pickle Loaded"
               print type(output)
               print "-------------"
+
+              return output
         except:
-            pass
+            return None

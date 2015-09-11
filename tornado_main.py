@@ -44,9 +44,9 @@ class SamDailyHandler(RequestHandler):
             print 'JSON'
         except ValueError:
             pick_dict = sam.unpack(self.request.body)
-            print 'Pickle'
-            pick_dict['']
-            Binary(cPickle.dumps(pickle, protocol=2))
+            if pick_dict is not None:
+                document = pick_dict
+                document['model_object_dict']['output'] = 'numpy placeholder'
 
         yield db.sam.insert(document)
         self.set_header("Content-Type", "application/json")
