@@ -46,7 +46,8 @@ class SamDailyHandler(RequestHandler):
             pick_dict = sam.unpack(self.request.body)
             if pick_dict is not None:
                 document = pick_dict
-                document['model_object_dict']['output'] = 'numpy placeholder'
+                # document['model_object_dict']['output'] = 'numpy placeholder'  # Dummy NumPy data
+                document['model_object_dict']['output'] = sam.pack_binary(document['model_object_dict']['output'])
 
         yield db.sam.insert(document)
         self.set_header("Content-Type", "application/json")
