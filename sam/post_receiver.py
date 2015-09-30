@@ -21,7 +21,4 @@ class SamPostReceiver(object):
     def pack_binary(self, np_array):
         from bson.binary import Binary
 
-        byte_string = Binary(cPickle.dumps(np_array, protocol=2))
-        print type(byte_string)
-
-        return byte_string
+        return Binary(cPickle.dumps(np_array, protocol=2))

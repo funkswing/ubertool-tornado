@@ -1,14 +1,13 @@
 __author__ = 'jflaisha'
 
-import motor, json, cPickle
+import motor, json
 from bson import json_util
 from tornado import gen
 from tornado.ioloop import IOLoop
 from tornado.web import RequestHandler, Application, url, asynchronous
-from bson.binary import Binary
 
 # Import model dependencies
-from sam import post_receiver as sam_handler
+from sam import handlers as sam_handlers
 
 class TestHandler(RequestHandler):
     @asynchronous
@@ -21,43 +20,20 @@ class TestHandler(RequestHandler):
         print document
 
 
-class SamDailyHandler(RequestHandler):
-    """
-    /sam/daily/<jid>
-    """
-    @asynchronous
-    @gen.coroutine
-    def get(self, jid):
-        print jid
-        db = self.settings['db']
-        document = yield db.sam.find_one({ "jid": jid })
-        self.set_header("Content-Type", "application/json")
-        self.write(json.dumps((document),default=json_util.default))
-
-    @asynchronous
-    @gen.coroutine
-    def post(self, jid):
-        db = self.settings['db']
-        sam = sam_handler.SamPostReceiver()
-        try:
-            document = json.loads(self.request.body)
-            print 'JSON'
-        except ValueError:
-            document = sam.unpack(self.request.body)
-            if document is not None:
-                # document['model_object_dict']['output'] = 'numpy placeholder'  # Dummy NumPy data
-                document['model_object_dict']['output'] = sam.pack_binary(document['model_object_dict']['output'])
-
-        yield db.sam.insert(document)
-        self.set_header("Content-Type", "application/json")
-        self.set_status(201)
-
 def make_app():
-    db = motor.MotorClient().ubertool   # Create single DB instance, and pass that to the Application
+    client = motor.MotorClient()  # ('localhost', 27017)
+    # Create single DB instance for each database, and pass that to the Application settings
+    db_uber = client.ubertool
+    db_sam = client.sam
     return Application([
         url(r"/", TestHandler),
-        (r'/sam/daily/(.*)', SamDailyHandler)
-        ], db=db)
+        (r'/sam/metadata/(.*)', sam_handlers.SamMetaDataHandler),
+        (r'/sam/daily/(.*)', sam_handlers.SamDailyHandler)
+        ],
+        # Settings dictionary
+        db_uber=db_uber,
+        db_sam=db_sam
+    )
 
 
 def main():
