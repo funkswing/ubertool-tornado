@@ -9,16 +9,12 @@ class SamPostReceiver(object):
     def unpack(self, payload):
 
         try:
-              output = cPickle.loads(payload)
-              print "Pickle Loaded"
-              print type(output)
-              print "-------------"
-
-              return output
+            return cPickle.loads(payload)
         except:
             return None
 
     def pack_binary(self, np_array):
         from bson.binary import Binary
-
+        import warnings
+        warnings.warn('This POST method is deprecated, as it stores NumPy objects as binary blobs', DeprecationWarning)
         return Binary(cPickle.dumps(np_array, protocol=2))

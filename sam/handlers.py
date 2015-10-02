@@ -5,12 +5,32 @@ from bson import json_util
 from tornado import gen
 from tornado.web import RequestHandler, asynchronous
 import post_receiver as sam_handler
+import mongo_insert
 
 
 class SamMetaDataHandler(RequestHandler):
     """
     /sam/metadata/<jid>
     """
+
+
+    def __schema__(self):
+        """
+        Schema of the Metadata documents
+        :return: string
+        """
+        return """
+        {
+        "user_id": "admin",
+        "jid": string,
+        "run_type": string,
+        "model_object_dict": {
+            'filename': string,
+            'input': {k: v,...},
+            'sim_days': list
+        }
+        """
+
     @asynchronous
     @gen.coroutine
     def get(self, jid):
@@ -21,9 +41,9 @@ class SamMetaDataHandler(RequestHandler):
         :param jid: string, Job ID used as a unique identifier for a SAM run
         """
         db_sam = self.settings['db_sam']
-        document = yield db_sam.metadata.find_one({ "jid": jid })
+        document = yield db_sam.metadata.find_one({"jid": jid})
         self.set_header("Content-Type", "application/json")
-        self.write(json.dumps((document),default=json_util.default))
+        self.write(json.dumps(document, default=json_util.default))
 
     @asynchronous
     @gen.coroutine
@@ -45,6 +65,22 @@ class SamDailyHandler(RequestHandler):
     """
     /sam/daily/<jid>
     """
+
+
+    def __schema__(self):
+        """
+        Schema of the Metadata documents
+        :return: string
+        """
+        return """
+        {
+        '_id': ObjectID()
+        'data': float
+        'day': int
+        'huc_id': string
+        }
+        """
+
     @asynchronous
     @gen.coroutine
     def get(self, jid):
@@ -52,34 +88,33 @@ class SamDailyHandler(RequestHandler):
         db = self.settings['db_sam']
         document = yield db.sam.find_one({ "jid": jid })
         self.set_header("Content-Type", "application/json")
-        self.write(json.dumps((document),default=json_util.default))
+        self.write(json.dumps(document, default=json_util.default))
 
     @asynchronous
     @gen.coroutine
     def post(self, jid):
         """
-        DEPRECATED: Monary is now used for inserting NumPy objects into Mongo
-
         :param jid: string, Job ID used as a unique identifier for a SAM run
         """
         db = self.settings['db_sam']
         sam = sam_handler.SamPostReceiver()
-        try:
-            document = json.loads(self.request.body)
-            print 'JSON'
-        except ValueError:
-            document = sam.unpack(self.request.body)
-            if document is not None:
-                # document['model_object_dict']['output'] = 'numpy placeholder'  # Dummy NumPy data
 
-                # DEPRECATED: puts NumPy array into Mongo as binary blob
-                document['model_object_dict']['output'] = sam.pack_binary(document['model_object_dict']['output'])
+        document = sam.unpack(self.request.body)
 
-                # sim_days ###########################
+        if document is not None:
+            # Get 'sim_days' from Metadata document matching 'jid' of SAM run
+            meta_doc = db.metadata.find_one(
+                { "jid": jid },
+                { "model_object_dict.sim_days": 1 }
+            )
+            day_array = meta_doc['model_object_dict']['sim_days']
 
-        yield db.sam.insert(document)
-        self.set_header("Content-Type", "application/json")
-        self.set_status(201)
+            list_of_huc_arrays = mongo_insert.extract_arrays(document['output'])
+            list_of_huc_ids = document['huc_ids']
 
-        import warnings
-        warnings.warn('This POST method is deprecated, as it stores NumPy objects as binary blobs', DeprecationWarning)
+            for huc_array in list_of_huc_arrays:
+                huc_id = list_of_huc_ids.index(huc_array)
+                mongo_insert.SamMonary(huc_array, day_array, huc_id)
+
+            # Set HTTP Status Code to 'Success: Created'
+            self.set_status(201)
