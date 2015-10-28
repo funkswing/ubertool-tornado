@@ -102,12 +102,7 @@ class SamDailyHandler(RequestHandler):
         document = sam.unpack(self.request.body)
 
         if document is not None:
-            # Get 'sim_days' from Metadata document matching 'jid' of SAM run
-            meta_doc = db.metadata.find_one(
-                { "jid": jid },
-                { "model_object_dict.sim_days": 1 }
-            )
-            day_array = meta_doc['model_object_dict']['sim_days']
+            day_array = self.get_sim_days(db, jid)
 
             list_of_huc_arrays = mongo_insert.extract_arrays(document['output'])
             list_of_huc_ids = document['huc_ids']
@@ -118,3 +113,12 @@ class SamDailyHandler(RequestHandler):
 
             # Set HTTP Status Code to 'Success: Created'
             self.set_status(201)
+
+    @gen.coroutine
+    def get_sim_days(self, db, jid):
+        # Get 'sim_days' from Metadata document matching 'jid' of SAM run
+        meta_doc = yield db.metadata.find_one(
+            { "jid": jid },
+            { "model_object_dict.sim_days": 1 }
+        )
+        raise gen.Return(meta_doc['model_object_dict']['sim_days'])
