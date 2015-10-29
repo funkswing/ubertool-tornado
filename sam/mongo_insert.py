@@ -30,11 +30,19 @@ class SamMonary(object):
         :param day_array: numpy array, sequence of "Julian Days" of simulation date range
         :param huc_id: string, HUC12 ID (12 digits)
         """
+        len_huc_output_array = len(huc_output_array)
+        len_day_array = len(day_array)
+        if len_huc_output_array is not len_day_array:
+            # Delete excess indices in numpy array (numpy array length is greater than total number of simulation days)
+            # (output arrays in Fortran have len on x-axis (axis=0) set to 11323, which is 10958 + 365)
+            self.huc_output_array = np.delete(huc_output_array,
+                                              [len_day_array + x for x in range(len_huc_output_array - len_day_array)],
+                                              0)
+            if len(self.huc_output_array) is not len(day_array):
+                raise ValueError("NumPy arrays must be equal in length")
+        else:
+            self.huc_output_array = huc_output_array
 
-        if len(huc_output_array) is not len(day_array):
-            raise ValueError("NumPy arrays must be equal in length")
-
-        self.huc_output_array = huc_output_array
         self.day_array = day_array
         self.huc_id = huc_id
 

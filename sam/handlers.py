@@ -145,6 +145,9 @@ class SamDailyHandler(RequestHandler):
         while i < len(list_of_huc_arrays):  # for huc_array in list_of_huc_arrays:
             huc_id = list_of_huc_ids[i]
             print 'huc_id: ', huc_id
-            sam_monary = mongo_insert.SamMonary(list_of_huc_arrays[i], day_array, huc_id)
-            sam_monary.monary_insert()
+            try:
+                sam_monary = mongo_insert.SamMonary(list_of_huc_arrays[i], day_array, huc_id)
+                sam_monary.monary_insert()
+            except ValueError, e:
+                print str(e)
             i += 1
