@@ -96,6 +96,7 @@ class SamDailyHandler(RequestHandler):
         """
         :param jid: string, Job ID used as a unique identifier for a SAM run
         """
+
         db = self.settings['db_sam']
         sam = sam_handler.SamPostReceiver()
 
@@ -123,17 +124,20 @@ class SamDailyHandler(RequestHandler):
     #     )
     #     raise gen.Return(meta_doc['model_object_dict']['sim_days'])  # Generators are not allowed to return values in Python <3.3; this is a workaround
 
+    @gen.coroutine
     def get_sim_days(self, db, jid):
         # Get 'sim_days' from 'metadata' document matching 'jid' of SAM run
-        meta_doc = db.metadata.find_one(
+        meta_doc = yield db.metadata.find_one(
             { "jid": jid },
             { "model_object_dict.sim_days": 1 }
         )
-        return meta_doc['model_object_dict']['sim_days']
+        raise gen.Return(meta_doc['model_object_dict']['sim_days'])
+        # return meta_doc['model_object_dict']['sim_days']
 
+    @gen.coroutine
     def monary_setup(self, db, jid, document):
 
-        day_array = self.get_sim_days(db, jid)
+        day_array = yield self.get_sim_days(db, jid)
         list_of_huc_arrays = mongo_insert.extract_arrays(document['output'])
         list_of_huc_ids = document['huc_ids']
 
