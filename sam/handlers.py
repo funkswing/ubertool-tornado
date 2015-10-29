@@ -100,6 +100,13 @@ class SamDailyHandler(RequestHandler):
         sam = sam_handler.SamPostReceiver()
 
         document = sam.unpack(self.request.body)
+        """
+        'document' schema = {
+            "jid": jid (string),
+            "output": daily_concs (np_array, multidimensional(variable)),
+            "huc_ids": huc_ids (np_array)
+        }
+        """
 
         if document is not None:
             day_array = self.get_sim_days(db, jid)
@@ -107,18 +114,25 @@ class SamDailyHandler(RequestHandler):
             list_of_huc_arrays = mongo_insert.extract_arrays(document['output'])
             list_of_huc_ids = document['huc_ids']
 
-            for huc_array in list_of_huc_arrays:
-                huc_id = list_of_huc_ids.index(huc_array)
-                mongo_insert.SamMonary(huc_array, day_array, huc_id)
+            yield self.monary_setup(day_array, list_of_huc_arrays, list_of_huc_ids)
 
             # Set HTTP Status Code to 'Success: Created'
             self.set_status(201)
 
     @gen.coroutine
     def get_sim_days(self, db, jid):
-        # Get 'sim_days' from Metadata document matching 'jid' of SAM run
+        # Get 'sim_days' from 'metadata' document matching 'jid' of SAM run
         meta_doc = yield db.metadata.find_one(
             { "jid": jid },
             { "model_object_dict.sim_days": 1 }
         )
-        raise gen.Return(meta_doc['model_object_dict']['sim_days'])
+        raise gen.Return(meta_doc['model_object_dict']['sim_days'])  # Generators are not allowed to return values in Python <3.3; this is a workaround
+
+    def monary_setup(self, day_array, list_of_huc_arrays, list_of_huc_ids):
+        i = 0
+        while i < len(list_of_huc_arrays):  # for huc_array in list_of_huc_arrays:
+            huc_id = list_of_huc_ids[i]
+            print 'huc_id: ', huc_id
+            sam_monary = mongo_insert.SamMonary(list_of_huc_arrays[i], day_array, huc_id)
+            sam_monary.monary_insert()
+            i += 1

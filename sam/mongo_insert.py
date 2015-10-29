@@ -22,12 +22,19 @@ def extract_arrays(fortran_output):
 
 
 class SamMonary(object):
-    def __init__(self, huc_array, day_array, huc_id):
+    def __init__(self, huc_output_array, day_array, huc_id):
+        """
+        Class represents each HUC worth of output data from SuperPRZM run.  The class methods take the numpy array
+        SuperPRZM output data and convert them to MonaryParams to be inserted into MongoDB using Monary.
+        :param huc_output_array: numpy array, SuperPRZM output data for one HUC
+        :param day_array: numpy array, sequence of "Julian Days" of simulation date range
+        :param huc_id: string, HUC12 ID (12 digits)
+        """
 
-        if len(huc_array) is not len(day_array):
+        if len(huc_output_array) is not len(day_array):
             raise ValueError("NumPy arrays must be equal in length")
 
-        self.huc_array = huc_array
+        self.huc_output_array = huc_output_array
         self.day_array = day_array
         self.huc_id = huc_id
 
@@ -51,14 +58,17 @@ class SamMonary(object):
             [daily conc. output]
         :return: numpy masked array, output data (float32), sim_days (int64), & HUC_ID, repeating, (|S12)
         """
-        array_size = len(self.huc_array)
-        masked_out = np.ma.masked_array(  # Output data array
-            self.huc_array,  # array containing Fortran output
+        array_size = len(self.huc_output_array)
+        masked_out = np.ma.masked_array(
+            # Output data array
+            self.huc_output_array,  # array containing Fortran output
             np.zeros(array_size, dtype=np.ma.nomask)  # Special value indicating masking is not needed (increases speed)
-        ), np.ma.masked_array(  # array of sim_days
+        ), np.ma.masked_array(
+            # array of sim_days
             self.day_array,
             np.zeros(array_size, dtype=np.ma.nomask)
-        ), np.ma.masked_array(  # array of HUC_ID (repeating) of which the Fortran output is associated
+        ), np.ma.masked_array(
+            # array of HUC_ID (repeating same value) of which the Fortran output is associated
             np.full(array_size, self.huc_id, dtype='|S12'),
             np.zeros(array_size, dtype=np.ma.nomask)
         )
@@ -67,7 +77,7 @@ class SamMonary(object):
 
     def monary_insert(self):
         """
-        Inserts the MonaryParam into MongoDB
+        Creates and inserts the MonaryParam into MongoDB
         :return: numpy array of the Mongo ObjectIDs of the inserted documents
         """
         ma_data, ma_day, ma_huc_id = self.create_masked_array()
