@@ -109,26 +109,34 @@ class SamDailyHandler(RequestHandler):
         """
 
         if document is not None:
-            day_array = self.get_sim_days(db, jid)
-
-            list_of_huc_arrays = mongo_insert.extract_arrays(document['output'])
-            list_of_huc_ids = document['huc_ids']
-
-            yield self.monary_setup(day_array, list_of_huc_arrays, list_of_huc_ids)
+            yield self.monary_setup(db, jid, document)
 
             # Set HTTP Status Code to 'Success: Created'
             self.set_status(201)
 
-    @gen.coroutine
+    # @gen.coroutine
+    # def get_sim_days(self, db, jid):
+    #     # Get 'sim_days' from 'metadata' document matching 'jid' of SAM run
+    #     meta_doc = yield db.metadata.find_one(
+    #         { "jid": jid },
+    #         { "model_object_dict.sim_days": 1 }
+    #     )
+    #     raise gen.Return(meta_doc['model_object_dict']['sim_days'])  # Generators are not allowed to return values in Python <3.3; this is a workaround
+
     def get_sim_days(self, db, jid):
         # Get 'sim_days' from 'metadata' document matching 'jid' of SAM run
-        meta_doc = yield db.metadata.find_one(
+        meta_doc = db.metadata.find_one(
             { "jid": jid },
             { "model_object_dict.sim_days": 1 }
         )
-        raise gen.Return(meta_doc['model_object_dict']['sim_days'])  # Generators are not allowed to return values in Python <3.3; this is a workaround
+        return meta_doc['model_object_dict']['sim_days']
 
-    def monary_setup(self, day_array, list_of_huc_arrays, list_of_huc_ids):
+    def monary_setup(self, db, jid, document):
+
+        day_array = self.get_sim_days(db, jid)
+        list_of_huc_arrays = mongo_insert.extract_arrays(document['output'])
+        list_of_huc_ids = document['huc_ids']
+
         i = 0
         while i < len(list_of_huc_arrays):  # for huc_array in list_of_huc_arrays:
             huc_id = list_of_huc_ids[i]
