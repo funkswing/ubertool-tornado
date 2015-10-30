@@ -146,7 +146,7 @@ class SamDailyHandler(RequestHandler):
             huc_id = list_of_huc_ids[i]
             print 'huc_id: ', huc_id
             try:
-                sam_monary = mongo_insert.SamMonary(list_of_huc_arrays[i], day_array, huc_id)
+                sam_monary = mongo_insert.SamMonary(jid, list_of_huc_arrays[i], day_array, huc_id)
                 sam_monary.monary_insert()
             except ValueError, e:
                 print str(e)

@@ -22,23 +22,27 @@ def extract_arrays(fortran_output):
 
 
 class SamMonary(object):
-    def __init__(self, huc_output_array, day_array, huc_id):
+    def __init__(self, jid, huc_output_array, day_array, huc_id):
         """
         Class represents each HUC worth of output data from SuperPRZM run.  The class methods take the numpy array
         SuperPRZM output data and convert them to MonaryParams to be inserted into MongoDB using Monary.
+        :param jid: string, job ID for SAM/SuperPRZM run
         :param huc_output_array: numpy array, SuperPRZM output data for one HUC
         :param day_array: numpy array, sequence of "Julian Days" of simulation date range
         :param huc_id: string, HUC12 ID (12 digits)
         """
+
+        self.jid = jid
+
         len_huc_output_array = len(huc_output_array)
         len_day_array = len(day_array)
-        if len_huc_output_array is not len_day_array:
+        if len_huc_output_array != len_day_array:
             # Delete excess indices in numpy array (numpy array length is greater than total number of simulation days)
             # (output arrays in Fortran have len on x-axis (axis=0) set to 11323, which is 10958 + 365)
             self.huc_output_array = np.delete(huc_output_array,
                                               [len_day_array + x for x in range(len_huc_output_array - len_day_array)],
                                               0)
-            if len(self.huc_output_array) is not len(day_array):
+            if len(self.huc_output_array) != len(day_array):
                 raise ValueError("NumPy arrays must be equal in length")
         else:
             self.huc_output_array = huc_output_array
@@ -46,17 +50,19 @@ class SamMonary(object):
         self.day_array = day_array
         self.huc_id = huc_id
 
-    def create_monary_params(self, ma_data, ma_day, ma_huc_id):
+    def create_monary_params(self, ma_data, ma_day, ma_huc_id, ma_jid):
         """
-        Create MonaryParams for inserting numpy arrays into Mongo
-        :param ma_data: numpy masked array,
-        :param ma_day: numpy masked array,
-        :param ma_huc_id: numpy masked array,
+        Create MonaryParams for inserting numpy arrays into MongoDB
+        :param ma_data: numpy masked array, float
+        :param ma_day: numpy masked array, int
+        :param ma_huc_id: numpy masked array, string len=12
+        :param ma_jid: numpy masked array, string len=21
         :return: MonaryParam object
         """
-        return MonaryParam.from_list(
-            [ma_data, ma_day, ma_huc_id],  # NumPy array(s)
-            ['data', 'day', 'huc_id']  # Name of the field (will be the key in MongoDB)
+        return MonaryParam.from_lists(
+            [ma_data, ma_day, ma_huc_id, ma_jid],                              # NumPy masked array(s)
+            ['data', 'day', 'huc_id', 'jid'],                                  # MongoDB key name
+            [str(ma_data.dtype), str(ma_day.dtype), 'string:12', 'string:21']  # Data types for the masked arrays
         )
 
     def create_masked_array(self):
@@ -79,6 +85,10 @@ class SamMonary(object):
             # array of HUC_ID (repeating same value) of which the Fortran output is associated
             np.full(array_size, self.huc_id, dtype='|S12'),
             np.zeros(array_size, dtype=np.ma.nomask)
+        ), np.ma.masked_array(
+            # array of JID (repeating same value) of which the SAM/SuperPRZM run is associated
+            np.full(array_size, self.jid, dtype='|S21'),
+            np.zeros(array_size, dtype=np.ma.nomask)
         )
 
         return masked_out
@@ -88,7 +98,7 @@ class SamMonary(object):
         Creates and inserts the MonaryParam into MongoDB
         :return: numpy array of the Mongo ObjectIDs of the inserted documents
         """
-        ma_data, ma_day, ma_huc_id = self.create_masked_array()
-        m_params = self.create_monary_params(ma_data, ma_day, ma_huc_id)
+        ma_data, ma_day, ma_huc_id, ma_jid = self.create_masked_array()
+        m_params = self.create_monary_params(ma_data, ma_day, ma_huc_id, ma_jid)
 
         return client.insert("sam", "daily", m_params)
