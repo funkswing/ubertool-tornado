@@ -1,3 +1,5 @@
+import sys
+
 __author__ = 'jflaisha'
 
 import motor, json
@@ -20,8 +22,8 @@ class TestHandler(RequestHandler):
         print document
 
 
-def make_app():
-    client = motor.MotorClient()  # ('localhost', 27017)
+def make_app(host, port):
+    client = motor.MotorClient(host, port)  # ('localhost', 27017)
     # Create single DB instance for each database, and pass that to the Application settings
     db_uber = client.ubertool
     db_sam = client.sam
@@ -36,8 +38,9 @@ def make_app():
     )
 
 
-def main():
-    app = make_app()
+def main(host, port):
+
+    app = make_app(host, port)
     app.listen(8787)
     # server = tornado.httpserver.HTTPServer(app)
     # server.bind(8888)
@@ -47,4 +50,16 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+
+    try:
+        host = sys.argv[1]
+    except IndexError:
+        host = 'localhost'
+    try:
+        port = sys.argv[2]
+    except IndexError:
+        port = 27017
+
+    print "Host: %s \nPort: %s" % (host, port)
+
+    main(host, port)

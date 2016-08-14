@@ -2,7 +2,6 @@ __author__ = 'jflaisha'
 
 from monary import Monary, MonaryParam
 import numpy as np
-import requests
 
 
 client = Monary(database="sam")  # defaults to localhost:27017
@@ -57,7 +56,7 @@ class SamMonary(object):
         :param ma_day: numpy masked array, int
         :param ma_huc_id: numpy masked array, string len=12
         :param ma_jid: numpy masked array, string len=21
-        :return: MonaryParam object
+        :return: tuple of MonaryParam objects (data, sim_day, huc_id, and jid)
         """
         return MonaryParam.from_lists(
             [ma_data, ma_day, ma_huc_id, ma_jid],                              # NumPy masked array(s)
@@ -70,7 +69,7 @@ class SamMonary(object):
         Create numpy masked array from ndarray output of SAM run.  The masked array is rank 3, with each rank (row)
         having equal numpy of indices (number of simulation days):
             [daily conc. output]
-        :return: numpy masked array, output data (float32), sim_days (int64), & HUC_ID, repeating, (|S12)
+        :return: numpy masked array, [[output data (float32)], [sim_days (int64)], [HUC_ID (|S12)], [jid (|S21)]]
         """
         array_size = len(self.huc_output_array)
         masked_out = np.ma.masked_array(
@@ -93,12 +92,12 @@ class SamMonary(object):
 
         return masked_out
 
-    def monary_insert(self):
+    def insert(self):
         """
         Creates and inserts the MonaryParam into MongoDB
-        :return: numpy array of the Mongo ObjectIDs of the inserted documents
+        :return: numpy array of the MongoDB ObjectIDs of the inserted documents
         """
         ma_data, ma_day, ma_huc_id, ma_jid = self.create_masked_array()
         m_params = self.create_monary_params(ma_data, ma_day, ma_huc_id, ma_jid)
 
-        return client.insert("sam", "daily", m_params)
+        return client.insert("sam", "daily", m_params)  # Insert data into "sam" db in the "daily" collection
