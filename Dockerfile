@@ -1,6 +1,6 @@
 FROM python:2
 
-MAINTAINER Ubertool Dev Team <ubertool-dev@googlegroups.com>
+MAINTAINER Jon Flaishans <www.flaishans.com>
 
 RUN apt-get update && apt-get install -y \
     pkg-config \
