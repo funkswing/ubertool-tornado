@@ -102,7 +102,7 @@ class SamDailyHandler(RequestHandler):
         db = self.settings['db_sam']
         sam = sam_handler.SamPostReceiver()
 
-        print "Start unpacking JSON pickle @ %s" % time.time()
+        print "Start unpacking JSON pickle    @ %s" % time.time()
         document = sam.unpack(self.request.body)
         print "Finished unpacking JSON pickle @ %s" % time.time()
         """
@@ -115,7 +115,7 @@ class SamDailyHandler(RequestHandler):
 
         if document is not None:
             yield self.monary_setup(db, jid, document)
-
+            print "Status code 'Success: Created' @ %s" % time.time()
             # Set HTTP Status Code to 'Success: Created'
             self.set_status(201)
 
@@ -140,11 +140,13 @@ class SamDailyHandler(RequestHandler):
 
     @gen.coroutine
     def monary_setup(self, db, jid, document):
-
+        print "Start: day_array called        @ %s" % time.time()
         day_array = yield self.get_sim_days(db, jid)
+        print "Finished: day_array called     @ %s" % time.time()
         list_of_huc_arrays = mongo_insert.extract_arrays(document['output'])
         list_of_huc_ids = document['huc_ids']
 
+        print "Started: while loop            @ %s" % time.time()
         i = 0
         while i < len(list_of_huc_arrays):  # for huc_array in list_of_huc_arrays:
             huc_id = list_of_huc_ids[i]
@@ -155,3 +157,4 @@ class SamDailyHandler(RequestHandler):
             except ValueError, e:
                 print str(e)
             i += 1
+        print "Finished: while loop           @ %s" % time.time()
