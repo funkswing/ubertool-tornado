@@ -85,6 +85,7 @@ class SamDailyHandler(RequestHandler):
     @gen.coroutine
     def get(self, jid):
         print jid
+        jid = str(jid)  # Force "jid" to be String
         db = self.settings['db_sam']
         document = yield db.sam.find_one({ "jid": jid })
         self.set_header("Content-Type", "application/json")
@@ -144,7 +145,7 @@ class SamDailyHandler(RequestHandler):
         i = 0
         while i < len(list_of_huc_arrays):  # for huc_array in list_of_huc_arrays:
             huc_id = list_of_huc_ids[i]
-            print 'huc_id: ', huc_id
+            # print 'huc_id: ', huc_id
             try:
                 sam_monary = mongo_insert.SamMonary(jid, list_of_huc_arrays[i], day_array, huc_id)
                 sam_monary.insert()

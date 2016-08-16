@@ -15,8 +15,8 @@ class TestHandler(RequestHandler):
     @asynchronous
     @gen.coroutine
     def get(self):
-        db = self.settings['db']
-        document = yield db.sam.find_one({ "run_type": "single" })
+        db = self.settings['db_sam']
+        document = yield db.metadata.find_one({})
         self.set_header("Content-Type", "application/json")
         self.write(json.dumps((document),default=json_util.default))
         print document
