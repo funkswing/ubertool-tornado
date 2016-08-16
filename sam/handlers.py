@@ -6,6 +6,7 @@ from tornado import gen
 from tornado.web import RequestHandler, asynchronous
 import post_receiver as sam_handler
 import mongo_insert
+import time
 
 
 class SamMetaDataHandler(RequestHandler):
@@ -101,7 +102,9 @@ class SamDailyHandler(RequestHandler):
         db = self.settings['db_sam']
         sam = sam_handler.SamPostReceiver()
 
+        print "Start unpacking JSON pickle @ %s" % time.time()
         document = sam.unpack(self.request.body)
+        print "Finished unpacking JSON pickle @ %s" % time.time()
         """
         'document' schema = {
             "jid": jid (string),
